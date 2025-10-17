@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar";
 import PatientNavigation from "./components/PatientNavigation";
 import AppointmentPage from "./pages/appointmentPage";
 import DisplayAppointments from "./pages/DisplayAppointments";
+import PaymentPage from "./pages/PaymentPage";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -95,6 +96,7 @@ export default function PatientDashboard() {
         <main className="flex-1 p-8 ml-[18vw] min-h-[90vh] mt-[10vh] overflow-y-auto bg-white">
           {activeTab === 'booking' && <AppointmentPage setActiveTab={setActiveTab} />}
           {activeTab === 'appointment' && <DisplayAppointments setActiveTab={setActiveTab} />}
+          {activeTab === 'payment' && <PaymentPage setActiveTab={setActiveTab} />}
           {activeTab === 'overview' && (
             <div className="text-black">
               <h1 className="text-3xl font-bold mb-4">Welcome, {user?.firstName} {user?.lastName}</h1>

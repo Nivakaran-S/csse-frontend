@@ -57,7 +57,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                     
                     <span className="font-medium">Appointments</span>
                     </button>
+                    <button 
+                    className={`w-full flex cursor-pointer items-center rounded-[7px] gap-3 px-4 py-3 text-left transition-all ${
+                        activeTab === 'payment' 
+                        ? 'bg-[#f5d709] text-lack ' 
+                        : 'text-gray-300 hover:bg-[#f5d709] hover:text-black '
+                    }`}
+                    onClick={() => setActiveTab('payment')}
+                    >
                     
+                    <span className="font-medium">Payment</span>
+                    </button>
                     
                </div>   
                
