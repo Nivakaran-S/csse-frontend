@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
+
 export default function DiagnosisForm({ onSuccess, editingDiagnosis, onCancelEdit }: any) {
   const [formData, setFormData] = useState({
     patientId: "",
@@ -22,7 +23,7 @@ export default function DiagnosisForm({ onSuccess, editingDiagnosis, onCancelEdi
     // Fetch all diagnosis records to get existing patient IDs
     const fetchPatientIds = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/diagnosis`);
+        const res = await fetch(`http://localhost:8000/api/diagnosis`);
         const data = await res.json();
         setExistingPatientIds(data.map((d: any) => d.patientId));
       } catch (err) {
@@ -57,8 +58,8 @@ export default function DiagnosisForm({ onSuccess, editingDiagnosis, onCancelEdi
     }
 
     const url = editingDiagnosis
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/diagnosis/${editingDiagnosis._id}`
-      : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/diagnosis`;
+      ? `http://localhost:8000/api/diagnosis/${editingDiagnosis._id}`
+      : `http://localhost:8000/api/diagnosis`;
 
     const method = editingDiagnosis ? "PUT" : "POST";
 
@@ -187,3 +188,5 @@ export default function DiagnosisForm({ onSuccess, editingDiagnosis, onCancelEdi
     </form>
   );
 }
+
+

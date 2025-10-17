@@ -15,7 +15,7 @@ export default function DiagnosisList({ onEdit }: any) {
 
   const fetchDiagnoses = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/diagnosis`);
+      const res = await fetch(`http://localhost:8000/api/diagnosis`);
       const data = await res.json();
       setDiagnoses(data);
     } catch (err) {
@@ -30,7 +30,7 @@ export default function DiagnosisList({ onEdit }: any) {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this diagnosis?")) return;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/diagnosis/${id}`, {
+      await fetch(`http://localhost:8000/api/diagnosis/${id}`, {
         method: "DELETE",
       });
       fetchDiagnoses();
