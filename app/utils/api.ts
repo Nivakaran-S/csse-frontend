@@ -102,6 +102,10 @@ export const getAppointmentsByDoctor = async (doctorId: string) => {
   return api.get(`/appointment/doctor/${doctorId}`);
 };
 
+export const getAppointmentsByDoctorAndDate = async (doctorId: string, date: string) => {
+  return api.get(`/appointment/doctor/${doctorId}/date/${date}`);
+};
+
 // ============================================
 // USERS
 // ============================================

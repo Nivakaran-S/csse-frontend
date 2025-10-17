@@ -5,9 +5,9 @@ import {
   createAppointment, 
   getAllDepartments, 
   getDoctorsByDepartment,
-  getAvailableSlots 
+  getAvailableSlots,
+  getAppointmentsByDoctorAndDate // You'll need to add this API function
 } from '../../utils/api';
-
 
 const steps = [
   { number: 1, title: 'Department' },
@@ -16,6 +16,28 @@ const steps = [
   { number: 4, title: 'Confirm' },
 ];
 
+// Validation utility functions
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePhone = (phone: string): boolean => {
+  // International phone number validation - supports various formats
+  const phoneRegex = /^(\+[0-9]+)*(((\(| |)*[0-9]+(\)|-| |)*)+((ext|x)+ *[0-9]+)*|[0-9\-\+\(\)\s]{7,20})$/;
+  return phoneRegex.test(phone.trim()) && phone.trim().length >= 7;
+};
+
+const validateName = (name: string): boolean => {
+  // Name validation - allows letters, spaces, hyphens, apostrophes
+  const nameRegex = /^[a-zA-Z\s\-']{2,50}$/;
+  return nameRegex.test(name.trim());
+};
+
+// Validation error interface
+interface ValidationErrors {
+  [key: string]: string;
+}
 
 // Step Indicator Component
 const StepIndicator = ({ currentStep }: { currentStep: number }) => (
@@ -44,7 +66,6 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
             </span>
           </div>
 
-
           {index < steps.length - 1 && (
             <div className="flex-1 flex items-center pt-[20px] px-2">
               <div
@@ -59,7 +80,6 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     </div>
   </div>
 );
-
 
 // Summary Panel Component (for Step 3 only)
 const SummaryPanel = ({
@@ -85,39 +105,34 @@ const SummaryPanel = ({
   };
 
   return (
-    <div className="bg-[#f5d709] text-black opacity-80  rounded-xl p-6 sticky top-4">
+    <div className="bg-[#f5d709] text-black opacity-80 rounded-xl p-6 sticky top-4">
       <h3 className="text-2xl font-bold mb-6">Appointment Summary</h3>
       
       <div className="space-y-0">
-      
-
         {/* Doctor */}
         <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
           <div className="flex items-start space-x-3">
-           
             <div className="flex-1">
-              <p className=" text-lg">Dr. {selectedDoctor}</p>
+              <p className="text-lg">Dr. {selectedDoctor}</p>
               <p>{form.department}</p>
             </div>
           </div>
         </div>
 
         {/* Date */}
-        <div className=" mt-[5px] rounded-lg px-4">
+        <div className="mt-[5px] rounded-lg px-4">
           <div className="flex items-start space-x-3">
-           
             <div className="flex-1">
-              <p className=" text-md">{formatDate(form.date)}</p>
+              <p className="text-md">{formatDate(form.date)}</p>
             </div>
           </div>
         </div>
 
         {/* Time */}
-        <div className=" rounded-lg px-4">
+        <div className="rounded-lg px-4">
           <div className="flex items-start space-x-3">
-            
             <div className="flex-1">
-              <p className=" text-md">{form.timeSlot}</p>
+              <p className="text-md">{form.timeSlot}</p>
             </div>
           </div>
         </div>
@@ -126,18 +141,19 @@ const SummaryPanel = ({
   );
 };
 
-
 // Step 1: Department Selection
 const DepartmentStep = ({ 
   form, 
   setForm,
   departments,
-  loading
+  loading,
+  validationErrors
 }: { 
   form: AppointmentForm; 
   setForm: React.Dispatch<React.SetStateAction<AppointmentForm>>;
   departments: Department[];
   loading: boolean;
+  validationErrors: ValidationErrors;
 }) => (
   <div className="space-y-6 text-black">
     <div className="text-center mb-6">
@@ -159,34 +175,40 @@ const DepartmentStep = ({
         <p className="text-gray-600">No departments available. Please contact support.</p>
       </div>
     ) : (
-      <div className="grid grid-cols-4 gap-4">
-        {departments.map((dept) => (
-          <button
-            key={dept._id}
-            onClick={() => setForm({ ...form, department: dept.name })}
-            className={`p-6 rounded-lg border-2 transition-all text-left ${
-              form.department === dept.name
-                ? 'border-[#f5d709] bg-blue-50 shadow-md'
-                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold text-lg">{dept.name}</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  {dept.description}
-                </p>
+      <>
+        <div className="grid grid-cols-4 gap-4">
+          {departments.map((dept) => (
+            <button
+              key={dept._id}
+              onClick={() => setForm({ ...form, department: dept.name })}
+              className={`p-6 rounded-lg border-2 transition-all text-left ${
+                form.department === dept.name
+                  ? 'border-[#f5d709] bg-blue-50 shadow-md'
+                  : validationErrors.department
+                  ? 'border-red-300 hover:border-red-400'
+                  : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-lg">{dept.name}</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {dept.description}
+                  </p>
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
+        {validationErrors.department && (
+          <p className="text-red-500 text-sm mt-2">{validationErrors.department}</p>
+        )}
+      </>
     )}
   </div>
 );
 
-
-// Step 2: Schedule Selection
+// Step 2: Schedule Selection (UPDATED with booked slots filtering)
 const ScheduleStep = ({
   form,
   handleChange,
@@ -195,8 +217,10 @@ const ScheduleStep = ({
   handleDoctorSelection,
   doctors,
   availableSlots,
+  bookedSlots,
   loadingDoctors,
-  loadingSlots
+  loadingSlots,
+  validationErrors
 }: {
   form: AppointmentForm;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
@@ -205,11 +229,16 @@ const ScheduleStep = ({
   handleDoctorSelection: (doctor: Doctor) => void;
   doctors: Doctor[];
   availableSlots: string[];
+  bookedSlots: string[];
   loadingDoctors: boolean;
   loadingSlots: boolean;
+  validationErrors: ValidationErrors;
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter out booked slots from available slots
+  const filteredAvailableSlots = availableSlots.filter(slot => !bookedSlots.includes(slot));
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -289,7 +318,9 @@ const ScheduleStep = ({
         <div className="space-y-6">
           {/* Calendar */}
           <div>
-            <div className="bg-white rounded-lg p-4 border-2 border-gray-300">
+            <div className={`bg-white rounded-lg p-4 border-2 ${
+              validationErrors.date ? 'border-red-300' : 'border-gray-300'
+            }`}>
               {/* Calendar Header */}
               <div className="flex items-center justify-between mb-4">
                 <button
@@ -362,10 +393,15 @@ const ScheduleStep = ({
             {!form.doctorId && (
               <p className="text-xs text-gray-500 mt-2">Please select a doctor first to enable date selection</p>
             )}
+            {validationErrors.date && (
+              <p className="text-red-500 text-sm mt-2">{validationErrors.date}</p>
+            )}
           </div>
 
-          {/* Time Slot Selection */}
-          <div className='bg-white border-2 border-gray-300 px-[15px] py-[15px] rounded-[8px]'>
+          {/* Time Slot Selection - UPDATED to show booked slots as disabled */}
+          <div className={`bg-white border-2 px-[15px] py-[15px] rounded-[8px] ${
+            validationErrors.timeSlot ? 'border-red-300' : 'border-gray-300'
+          }`}>
             <label className="block text-md font-medium text-gray-700 mb-2">
               Choose a Time Slot
               {loadingSlots && <span className="ml-2 text-sm text-gray-500">(Loading...)</span>}
@@ -387,22 +423,40 @@ const ScheduleStep = ({
             ) : (
               <div className="bg-white rounded-lg p-4 min-h-[200px] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-3">
-                  {availableSlots.map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => setForm({ ...form, timeSlot: slot })}
-                      className={`p-3 rounded-lg border-2 transition-all font-medium ${
-                        form.timeSlot === slot
-                          ? 'border-[#f5d709] bg-[#f5d709] shadow-md text-black'
-                          : 'border-gray-300 hover:border-[#f5d709]'
-                      }`}
-                    >
-                      {slot}
-                    </button>
-                  ))}
+                  {availableSlots.map((slot) => {
+                    const isBooked = bookedSlots.includes(slot);
+                    const isAvailable = !isBooked;
+                    
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => isAvailable && setForm({ ...form, timeSlot: slot })}
+                        disabled={isBooked}
+                        className={`p-3 rounded-lg border-2 transition-all font-medium ${
+                          isBooked
+                            ? 'border-red-300 bg-red-50 text-red-400 cursor-not-allowed'
+                            : form.timeSlot === slot
+                            ? 'border-[#f5d709] bg-[#f5d709] shadow-md text-black'
+                            : 'border-gray-300 hover:border-[#f5d709]'
+                        }`}
+                      >
+                        {slot} {isBooked && <span className="text-xs block">(Booked)</span>}
+                      </button>
+                    );
+                  })}
                 </div>
+                
+                {/* Show available slots count */}
+                {filteredAvailableSlots.length > 0 && bookedSlots.length > 0 && (
+                  <div className="mt-4 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                    {filteredAvailableSlots.length} available slots, {bookedSlots.length} already booked
+                  </div>
+                )}
               </div>
+            )}
+            {validationErrors.timeSlot && (
+              <p className="text-red-500 text-sm mt-2">{validationErrors.timeSlot}</p>
             )}
           </div>
         </div>
@@ -453,6 +507,8 @@ const ScheduleStep = ({
                   className={`w-full p-4 rounded-lg cursor-pointer border-2 transition-all text-left ${
                     selectedDoctor === `${doc.firstName} ${doc.lastName}`
                       ? 'border-[#f5d709] bg-white shadow-md'
+                      : validationErrors.doctorId
+                      ? 'border-red-300 hover:border-red-400 bg-white'
                       : 'border-gray-300 hover:border-[#f5d709] bg-white'
                   }`}
                 >
@@ -469,132 +525,179 @@ const ScheduleStep = ({
               ))}
             </div>
           )}
+          {validationErrors.doctorId && (
+            <p className="text-red-500 text-sm mt-2">{validationErrors.doctorId}</p>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-
-// Step 3: Patient Details
+// Step 3: Patient Details (UPDATED with validation)
 const DetailsStep = ({
   patientDetails,
-  handlePatientDetailsChange
+  handlePatientDetailsChange,
+  validationErrors
 }: {
   patientDetails: PatientDetails;
   handlePatientDetailsChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
-}) => (
-  <div className="space-y-5 text-black">
-    <div className="text-center mb-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">
-        Patient Information
-      </h3>
-      <p className="text-sm text-gray-600">
-        Please provide your contact and visit details
-      </p>
-    </div>
+  validationErrors: ValidationErrors;
+}) => {
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Full Name <span className="text-red-500">*</span>
-      </label>
-      <input
-        name="fullName"
-        type="text"
-        value={patientDetails.fullName}
-        onChange={handlePatientDetailsChange}
-        placeholder="Enter your full name"
-        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
+  return (
+    <div className="space-y-5 text-black">
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+          Patient Information
+        </h3>
+        <p className="text-sm text-gray-600">
+          Please provide your contact and visit details
+        </p>
+      </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Email Address <span className="text-red-500">*</span>
-      </label>
-      <input
-        name="email"
-        type="email"
-        value={patientDetails.email}
-        onChange={handlePatientDetailsChange}
-        placeholder="your.email@example.com"
-        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Full Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          name="fullName"
+          type="text"
+          value={patientDetails.fullName}
+          onChange={handlePatientDetailsChange}
+          placeholder="Enter your full name"
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            validationErrors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+        />
+        {validationErrors.fullName && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.fullName}</p>
+        )}
+      </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Phone Number <span className="text-red-500">*</span>
-      </label>
-      <input
-        name="phone"
-        type="tel"
-        value={patientDetails.phone}
-        onChange={handlePatientDetailsChange}
-        placeholder="+1 (555) 000-0000"
-        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Email Address <span className="text-red-500">*</span>
+        </label>
+        <input
+          name="email"
+          type="email"
+          value={patientDetails.email}
+          onChange={handlePatientDetailsChange}
+          placeholder="your.email@example.com"
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            validationErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+        />
+        {validationErrors.email && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+        )}
+      </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Address
-      </label>
-      <textarea
-        name="address"
-        value={patientDetails.address}
-        onChange={handlePatientDetailsChange}
-        placeholder="Enter your address"
-        rows={3}
-        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Phone Number <span className="text-red-500">*</span>
+        </label>
+        <input
+          name="phone"
+          type="tel"
+          value={patientDetails.phone}
+          onChange={handlePatientDetailsChange}
+          placeholder="+1 (555) 000-0000"
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            validationErrors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+        />
+        {validationErrors.phone && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Please include country code for international numbers
+        </p>
+      </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Reason for Visit
-      </label>
-      <textarea
-        name="reasonForVisit"
-        value={patientDetails.reasonForVisit}
-        onChange={handlePatientDetailsChange}
-        placeholder="Briefly describe the reason for your visit"
-        rows={3}
-        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Address
+        </label>
+        <textarea
+          name="address"
+          value={patientDetails.address}
+          onChange={handlePatientDetailsChange}
+          placeholder="Enter your address"
+          rows={3}
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            validationErrors.address ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+        />
+        {validationErrors.address && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.address}</p>
+        )}
+      </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Preferred Language
-      </label>
-      <select
-        name="preferredLanguage"
-        value={patientDetails.preferredLanguage}
-        onChange={handlePatientDetailsChange}
-        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      >
-        <option value="English">English</option>
-        <option value="Spanish">Spanish</option>
-        <option value="French">French</option>
-        <option value="German">German</option>
-        <option value="Chinese">Chinese</option>
-        <option value="Hindi">Hindi</option>
-        <option value="Tamil">Tamil</option>
-      </select>
-    </div>
-    <div>
-      <input 
-      type='checkbox'
-      required
-      />
-      <label className="text-sm text-gray-600 ml-2">
-        I agree to share my data with the clinic for appointment purposes.
-      </label>
-    </div>
-  </div>
-);
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Reason for Visit
+        </label>
+        <textarea
+          name="reasonForVisit"
+          value={patientDetails.reasonForVisit}
+          onChange={handlePatientDetailsChange}
+          placeholder="Briefly describe the reason for your visit"
+          rows={3}
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            validationErrors.reasonForVisit ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+        />
+        {validationErrors.reasonForVisit && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.reasonForVisit}</p>
+        )}
+      </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Preferred Language
+        </label>
+        <select
+          name="preferredLanguage"
+          value={patientDetails.preferredLanguage}
+          onChange={handlePatientDetailsChange}
+          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
+        >
+          <option value="English">English</option>
+          <option value="Spanish">Spanish</option>
+          <option value="French">French</option>
+          <option value="German">German</option>
+          <option value="Chinese">Chinese</option>
+          <option value="Hindi">Hindi</option>
+          <option value="Tamil">Tamil</option>
+        </select>
+      </div>
+
+      <div className="flex items-start space-x-3">
+        <input 
+          type="checkbox"
+          id="terms"
+          checked={termsAccepted}
+          onChange={(e) => setTermsAccepted(e.target.checked)}
+          required
+          className={`mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+            validationErrors.terms ? 'border-red-500' : ''
+          }`}
+        />
+        <label htmlFor="terms" className="text-sm text-gray-600">
+          I agree to share my data with the clinic for appointment purposes and have read the 
+          <span className="text-blue-600 hover:underline cursor-pointer"> privacy policy</span>.
+          <span className="text-red-500">*</span>
+        </label>
+      </div>
+      {validationErrors.terms && (
+        <p className="text-red-500 text-sm">{validationErrors.terms}</p>
+      )}
+    </div>
+  );
+};
 
 // Step 4: Confirmation
 const ConfirmationStep = ({
@@ -717,7 +820,7 @@ const ConfirmationStep = ({
             className={`w-full py-3 cursor-pointer rounded-lg transition text-black ${
               isSubmitting 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-[#f5d709]  text-black'
+                : 'bg-[#f5d709] text-black hover:bg-[#e5c708]'
             }`}
           >
             {isSubmitting ? 'Booking...' : 'Confirm & Book Appointment'}
@@ -777,8 +880,7 @@ const ConfirmationStep = ({
   );
 };
 
-
-// Main Component
+// Main Component (UPDATED with comprehensive validation)
 export default function AppointmentFormComponent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<AppointmentForm>({
@@ -801,9 +903,11 @@ export default function AppointmentFormComponent() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
@@ -815,6 +919,7 @@ export default function AppointmentFormComponent() {
     return Math.random().toString(36).substr(2, 9).toUpperCase();
   }, []);
 
+  // Authentication check
   useEffect(() => {
     const fetchLoggedInUser = async () => {
       setIsLoadingAuth(true);
@@ -849,6 +954,7 @@ export default function AppointmentFormComponent() {
     fetchLoggedInUser();
   }, []);
 
+  // Fetch departments
   useEffect(() => {
     if (!loggedInUserId) return;
 
@@ -868,6 +974,7 @@ export default function AppointmentFormComponent() {
     fetchDepartments();
   }, [loggedInUserId]);
 
+  // Fetch doctors when department changes
   useEffect(() => {
     if (!form.department) {
       setDoctors([]);
@@ -890,6 +997,7 @@ export default function AppointmentFormComponent() {
     fetchDoctors();
   }, [form.department]);
 
+  // Fetch available slots
   useEffect(() => {
     if (!form.doctorId || !form.date) {
       setAvailableSlots([]);
@@ -913,10 +1021,44 @@ export default function AppointmentFormComponent() {
     fetchAvailableSlots();
   }, [form.doctorId, form.date]);
 
+  // NEW: Fetch booked slots when doctor and date are selected
+  useEffect(() => {
+    if (!form.doctorId || !form.date) {
+      setBookedSlots([]);
+      return;
+    }
+
+    const fetchBookedSlots = async () => {
+      try {
+        // You need to implement this API function
+        const response = await getAppointmentsByDoctorAndDate(form.doctorId, form.date);
+        const appointments = response.data.appointments || [];
+        
+        // Extract booked time slots
+        const booked = appointments.map((apt: any) => apt.timeSlot);
+        setBookedSlots(booked);
+        
+      } catch (err) {
+        console.error('Error fetching booked slots:', err);
+        setBookedSlots([]); // Fail silently, don't block the user
+      }
+    };
+
+    fetchBookedSlots();
+  }, [form.doctorId, form.date]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    // Clear validation errors for this field
+    if (validationErrors[e.target.name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[e.target.name];
+        return newErrors;
+      });
+    }
     setError('');
   };
 
@@ -924,60 +1066,122 @@ export default function AppointmentFormComponent() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setPatientDetails({ ...patientDetails, [e.target.name]: e.target.value });
+    // Clear validation errors for this field
+    if (validationErrors[e.target.name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[e.target.name];
+        return newErrors;
+      });
+    }
     setError('');
   };
 
   const handleDoctorSelection = (doctor: Doctor) => {
     setSelectedDoctor(`${doctor.firstName} ${doctor.lastName}`);
     setForm({ ...form, doctorId: doctor.doctorId, timeSlot: '' });
+    // Clear doctor validation error
+    if (validationErrors.doctorId) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.doctorId;
+        return newErrors;
+      });
+    }
+  };
+
+  // Comprehensive validation function
+  const validateStep = (step?: number): boolean => {
+    const stepToValidate = step || currentStep;
+    const newErrors: ValidationErrors = {};
+
+    // Step 1: Department validation
+    if (stepToValidate === 1) {
+      if (!form.department) {
+        newErrors.department = 'Please select a department';
+      }
+    }
+
+    // Step 2: Schedule validation
+    if (stepToValidate === 2) {
+      if (!form.doctorId) {
+        newErrors.doctorId = 'Please select a doctor';
+      }
+      if (!form.date) {
+        newErrors.date = 'Please select a date';
+      }
+      if (!form.timeSlot) {
+        newErrors.timeSlot = 'Please select a time slot';
+      }
+    }
+
+    // Step 3: Patient details validation
+    if (stepToValidate === 3) {
+      // Full name validation
+      if (!patientDetails.fullName.trim()) {
+        newErrors.fullName = 'Full name is required';
+      } else if (!validateName(patientDetails.fullName)) {
+        newErrors.fullName = 'Please enter a valid name (2-50 characters, letters only)';
+      }
+
+      // Email validation
+      if (!patientDetails.email.trim()) {
+        newErrors.email = 'Email address is required';
+      } else if (!validateEmail(patientDetails.email)) {
+        newErrors.email = 'Please enter a valid email address';
+      }
+
+      // Phone validation
+      if (!patientDetails.phone.trim()) {
+        newErrors.phone = 'Phone number is required';
+      } else if (!validatePhone(patientDetails.phone)) {
+        newErrors.phone = 'Please enter a valid phone number (minimum 7 digits)';
+      }
+
+      // Optional address validation (if provided)
+      if (patientDetails.address && patientDetails.address.trim().length > 500) {
+        newErrors.address = 'Address must be less than 500 characters';
+      }
+
+      // Optional reason validation (if provided)
+      if (patientDetails.reasonForVisit && patientDetails.reasonForVisit.trim().length > 1000) {
+        newErrors.reasonForVisit = 'Reason for visit must be less than 1000 characters';
+      }
+
+      // Terms acceptance (you might want to add this state)
+      const termsCheckbox = document.getElementById('terms') as HTMLInputElement;
+      if (!termsCheckbox?.checked) {
+        newErrors.terms = 'Please accept the terms and conditions';
+      }
+    }
+
+    setValidationErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      setError('Please fix the errors above before continuing');
+      return false;
+    }
+
+    return true;
   };
 
   const nextStep = () => {
     if (validateStep()) {
       setCurrentStep(currentStep + 1);
       setError('');
+      setValidationErrors({});
     }
   };
 
   const prevStep = () => {
     setCurrentStep(currentStep - 1);
     setError('');
-  };
-
-  const validateStep = () => {
-    if (currentStep === 1 && !form.department) {
-      setError('Please select a department');
-      return false;
-    }
-    if (currentStep === 2) {
-      if (!form.doctorId) {
-        setError('Please select a doctor');
-        return false;
-      }
-      if (!form.date) {
-        setError('Please select a date');
-        return false;
-      }
-      if (!form.timeSlot) {
-        setError('Please select a time slot');
-        return false;
-      }
-    }
-    if (currentStep === 3) {
-      if (!patientDetails.fullName || !patientDetails.email || !patientDetails.phone) {
-        setError('Please fill in all required fields');
-        return false;
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(patientDetails.email)) {
-        setError('Please enter a valid email address');
-        return false;
-      }
-    }
-    return true;
+    setValidationErrors({});
   };
 
   const handleSubmit = async () => {
+    if (!validateStep(3)) return; // Validate patient details before submission
+
     if (!form.patientId || !loggedInUserId) {
       setError('Patient ID is missing. Please login again.');
       return;
@@ -1069,6 +1273,7 @@ export default function AppointmentFormComponent() {
             <DetailsStep
               patientDetails={patientDetails}
               handlePatientDetailsChange={handlePatientDetailsChange}
+              validationErrors={validationErrors}
             />
           </div>
         </div>
@@ -1082,6 +1287,7 @@ export default function AppointmentFormComponent() {
                 setForm={setForm} 
                 departments={departments}
                 loading={loadingDepartments}
+                validationErrors={validationErrors}
               />
             )}
             {currentStep === 2 && (
@@ -1093,8 +1299,10 @@ export default function AppointmentFormComponent() {
                 handleDoctorSelection={handleDoctorSelection}
                 doctors={doctors}
                 availableSlots={availableSlots}
+                bookedSlots={bookedSlots}
                 loadingDoctors={loadingDoctors}
                 loadingSlots={loadingSlots}
+                validationErrors={validationErrors}
               />
             )}
             {currentStep === 4 && (
@@ -1130,7 +1338,7 @@ export default function AppointmentFormComponent() {
           )}
           <button
             onClick={nextStep}
-            className={`flex-1 px-6 py-3 bg-[#f5d709] cursor-pointer text-black rounded-lg hover:bg-[#e5c708] transition  ${
+            className={`flex-1 px-6 py-3 bg-[#f5d709] cursor-pointer text-black rounded-lg hover:bg-[#e5c708] transition ${
               currentStep === 1 ? 'w-full' : ''
             }`}
           >
