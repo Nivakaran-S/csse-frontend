@@ -77,6 +77,11 @@ export const getAppointmentsByPatientId = async (patientId: string) => {
   return api.get(`/appointment/patient/${patientId}`);
 };
 
+// NEW: Get appointments by doctor and specific date
+export const getAppointmentsByDoctorAndDate = async (doctorId: string, date: string) => {
+  return api.get(`/appointment/doctor/${doctorId}/date/${date}`);
+};
+
 // ============================================
 // PAYMENTS
 // ============================================
@@ -105,8 +110,26 @@ export const applyForCoverage = async (coverageData: {
   return api.post('/coverage/apply', coverageData);
 };
 
+// UPDATED: Returns 200 with status 'None' if no application exists
 export const getCoverageStatus = async (userId: string) => {
-  return api.get(`/coverage/status/${userId}`);
+  try {
+    const response = await api.get(`/coverage/status/${userId}`);
+    return response;
+  } catch (error: any) {
+    // Handle 404 gracefully - return success with None status
+    if (error.response?.status === 404) {
+      return {
+        data: {
+          success: true,
+          data: {
+            status: 'None',
+            message: 'No coverage application found'
+          }
+        }
+      };
+    }
+    throw error;
+  }
 };
 
 // ============================================

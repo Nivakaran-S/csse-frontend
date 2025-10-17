@@ -67,7 +67,7 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
 
     try {
       // Submit receipt to backend
-      const response = await fetch('http://localhost:3001/api/cash-receipts/submit', {
+      const response = await fetch('http://localhost:8000/api/cash-receipts/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
